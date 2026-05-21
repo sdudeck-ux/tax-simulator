@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Tax Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-700">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-extrabold text-emerald-400 tracking-tight">⚡ 1040 Vibe Simulator</h1>
+            <p class="text-slate-400 mt-2">Enter your mock W-2 info to see how the brackets shift your reality.</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="space-y-6 bg-slate-850 p-6 rounded-xl border border-slate-700/50">
+                <h2 class="text-xl font-bold text-slate-200 border-b border-slate-700 pb-2">Step 1: Mock W-2 Data</h2>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Filing Status</label>
+                    <select id="filingStatus" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                        <option value="single">Single</option>
+                        <option value="mfj">Married Filing Jointly</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Box 1: Wages, tips, other comp.</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-slate-500">$</span>
+                        <input id="wages" type="number" value="50000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 pl-8 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">Box 2: Federal income tax withheld</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-slate-500">$</span>
+                        <input id="withholding" type="number" value="45000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 pl-8 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col justify-between bg-slate-900/50 p-6 rounded-xl border border-slate-700">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-200 border-b border-slate-700 pb-2 mb-4">Step 2: Real-Time Breakdown</h2>
+                    
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between"><span class="text-slate-400">Gross Income:</span> <span id="lblGross" class="font-mono">$0.00</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Standard Deduction:</span> <span id="lblDeduction" class="font-mono text-red-400">-$0.00</span></div>
+                        <hr class="border-slate-800">
+                        <div class="flex justify-between text-base font-semibold"><span class="text-slate-300">Taxable Income:</span> <span id="lblTaxable" class="font-mono text-emerald-300">$0.00</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Total Tax Liability:</span> <span id="lblTaxLiability" class="font-mono">$0.00</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Payments (Withheld):</span> <span id="lblPaid" class="font-mono text-blue-400">$0.00</span></div>
+                    </div>
+                </div>
+
+                <div id="resultBox" class="mt-6 p-4 rounded-xl text-center border transition-all duration-300">
+                    <div id="resultType" class="text-xs uppercase tracking-wider font-bold text-slate-400">Calculating...</div>
+                    <div id="resultAmount" class="text-3xl font-black font-mono mt-1">$0.00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 2026 Marginal Tax Brackets (Simulated Standard Brackets)
+        const BRACKETS = {
+            single: [
+                { limit: 11600, rate: 0.10 },
+                { limit: 47150, rate: 0.12 },
+                { limit: 100525, rate: 0.22 },
+                { limit: 191950, rate: 0.24 },
+                { limit: 243725, rate: 0.32 },
+                { limit: 609350, rate: 0.35 },
+                { limit: Infinity, rate: 0.37 }
+            ],
+            mfj: [
+                { limit: 23200, rate: 0.10 },
+                { limit: 94300, rate: 0.12 },
+                { limit: 201050, rate: 0.22 },
+                { limit: 383900, rate: 0.24 },
+                { limit: 487450, rate: 0.32 },
+                { limit: 731200, rate: 0.35 },
+                { limit: Infinity, rate: 0.37 }
+            ]
+        };
+
+        const DEDUCTIONS = {
+            single: 15000, // Estimated 2026 standard deduction adjustments
+            mfj: 30000
+        };
+
+        function calculateTax(taxableIncome, status) {
+            if (taxableIncome <= 0) return 0;
+            
+            let tax = 0;
+            let previousLimit = 0;
+            const brackets = BRACKETS[status];
+
+            for (const bracket of brackets) {
+                if (taxableIncome > bracket.limit) {
+                    tax += (bracket.limit - previousLimit) * bracket.rate;
+                    previousLimit = bracket.limit;
+                } else {
+                    tax += (taxableIncome - previousLimit) * bracket.rate;
+                    break;
+                }
+            }
+            return tax;
+        }
+
+        function updateVibe() {
+            // Inputs
+            const status = document.getElementById('filingStatus').value;
+            const wages = Math.max(0, parseFloat(document.getElementById('wages').value) || 0);
+            const withholding = Math.max(0, parseFloat(document.getElementById('withholding').value) || 0);
+
+            // Logic
+            const deduction = DEDUCTIONS[status];
+            const taxableIncome = Math.max(0, wages - deduction);
+            const totalTax = calculateTax(taxableIncome, status);
+            const finalDifference = withholding - totalTax;
+
+            // DOM Updates
+            document.getElementById('lblGross').innerText = formatCurrency(wages);
+            document.getElementById('lblDeduction').innerText = `-${formatCurrency(deduction)}`;
+            document.getElementById('lblTaxable').innerText = formatCurrency(taxableIncome);
+            document.getElementById('lblTaxLiability').innerText = formatCurrency(totalTax);
+            document.getElementById('lblPaid').innerText = formatCurrency(withholding);
+
+            const resultBox = document.getElementById('resultBox');
+            const resultType = document.getElementById('resultType');
+            const resultAmount = document.getElementById('resultAmount');
+
+            if (finalDifference >= 0) {
+                // Refund Vibe
+                resultType.innerText = "🎉 Estimated Tax Refund";
+                resultAmount.innerText = formatCurrency(finalDifference);
+                resultBox.className = "mt-6 p-4 rounded-xl text-center border border-emerald-500/30 bg-emerald-950/20 text-emerald-400";
+            } else {
+                // Owe Vibe
+                resultType.innerText = "💸 Tax Owed to IRS";
+                resultAmount.innerText = formatCurrency(Math.abs(finalDifference));
+                resultBox.className = "mt-6 p-4 rounded-xl text-center border border-rose-500/30 bg-rose-950/20 text-rose-400";
+            }
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+        }
+
+        // Event Listeners for that instantaneous Vibe Coding feel
+        document.getElementById('filingStatus').addEventListener('change', updateVibe);
+        document.getElementById('wages').addEventListener('input', updateVibe);
+        document.getElementById('withholding').addEventListener('input', updateVibe);
+
+        // Run on load
+        updateVibe();
+    </script>
+</body>
+</html>
