@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2025 Progressive Tax Bracket Simulator</title>
+    <title>2025 Progressive Tax Bracket & Credit Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
 
-    <div class="bg-slate-800 p-6 md:p-8 rounded-2xl shadow-2xl max-w-5xl w-full border border-slate-700">
+    <div class="bg-slate-800 p-6 md:p-8 rounded-2xl shadow-2xl max-w-6xl w-full border border-slate-700">
         <header class="mb-8 text-center">
-            <h1 class="text-3xl font-extrabold text-emerald-400 tracking-tight">⚡ 1040 Progressive Tax Visualizer</h1>
-            <p class="text-slate-400 mt-2">Official 2025 IRS Parameters. See exactly how your income spreads across the brackets.</p>
+            <h1 class="text-3xl font-extrabold text-emerald-400 tracking-tight">⚡ 1040 Progressive Tax & Credit Visualizer</h1>
+            <p class="text-slate-400 mt-2">Official 2025 Parameters. Explore progressive brackets, credits, and your true effective tax rate.</p>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div class="lg:col-span-5 space-y-6">
                 <div class="bg-slate-850 p-6 rounded-xl border border-slate-700/50 space-y-4">
-                    <h2 class="text-xl font-bold text-slate-200 border-b border-slate-700 pb-2">Step 1: W-2 Data Input</h2>
+                    <h2 class="text-xl font-bold text-slate-200 border-b border-slate-700 pb-2">Step 1: W-2 Data & Family</h2>
                     
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-1">Filing Status</label>
@@ -31,7 +31,7 @@
                         <label class="block text-sm font-medium text-slate-400 mb-1">Box 1: Wages & Tips (Gross Income)</label>
                         <div class="relative">
                             <span class="absolute left-3 top-2.5 text-slate-500">$</span>
-                            <input id="wages" type="number" value="65000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 pl-8 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <input id="wages" type="number" value="75000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 pl-8 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                     </div>
 
@@ -39,20 +39,33 @@
                         <label class="block text-sm font-medium text-slate-400 mb-1">Box 2: Federal Income Tax Withheld</label>
                         <div class="relative">
                             <span class="absolute left-3 top-2.5 text-slate-500">$</span>
-                            <input id="withholding" type="number" value="6000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 pl-8 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <input id="withholding" type="number" value="7000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 pl-8 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Number of Qualifying Dependents ($2,000 credit each)</label>
+                        <input id="dependents" type="number" min="0" max="10" value="2" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
                     </div>
                 </div>
 
                 <div class="bg-slate-900/60 p-6 rounded-xl border border-slate-700 space-y-3 text-sm">
                     <h3 class="text-lg font-bold text-slate-200 mb-2">Tax Return Summary</h3>
                     <div class="flex justify-between"><span class="text-slate-400">Gross Income:</span> <span id="lblGross" class="font-mono">$0.00</span></div>
-                    <div class="flex justify-between"><span class="text-slate-400">2025 Standard Deduction:</span> <span id="lblDeduction" class="font-mono text-red-400">-$0.00</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Standard Deduction:</span> <span id="lblDeduction" class="font-mono text-red-400">-$0.00</span></div>
                     <hr class="border-slate-800">
-                    <div class="flex justify-between text-base font-semibold"><span class="text-slate-300">Taxable Income:</span> <span id="lblTaxable" class="font-mono text-emerald-300">$0.00</span></div>
-                    <div class="flex justify-between"><span class="text-slate-400">Total Calculated Tax:</span> <span id="lblTaxLiability" class="font-mono">$0.00</span></div>
+                    <div class="flex justify-between font-semibold"><span class="text-slate-300">Taxable Income:</span> <span id="lblTaxable" class="font-mono text-emerald-300">$0.00</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Initial Bracket Tax:</span> <span id="lblInitialTax" class="font-mono">$0.00</span></div>
+                    <div class="flex justify-between text-cyan-400"><span class="text-cyan-400">Dependent Tax Credit:</span> <span id="lblCredit" class="font-mono">-$0.00</span></div>
+                    <hr class="border-slate-800">
+                    <div class="flex justify-between text-base font-bold"><span class="text-slate-200">Total Final Tax Liability:</span> <span id="lblTaxLiability" class="font-mono">$0.00</span></div>
                     <div class="flex justify-between"><span class="text-slate-400">Box 2 Payments Made:</span> <span id="lblPaid" class="font-mono text-blue-400">$0.00</span></div>
                     
+                    <div class="bg-slate-800 p-3 rounded-lg flex justify-between items-center border border-slate-700 mt-2">
+                        <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">📊 Effective Tax Rate:</span>
+                        <span id="lblEffectiveRate" class="font-mono text-xl font-bold text-amber-400">0.0%</span>
+                    </div>
+
                     <div id="resultBox" class="mt-4 p-4 rounded-xl text-center border transition-all duration-300">
                         <div id="resultType" class="text-xs uppercase tracking-wider font-bold">Calculating...</div>
                         <div id="resultAmount" class="text-2xl font-black font-mono mt-1">$0.00</div>
@@ -62,8 +75,8 @@
 
             <div class="lg:col-span-7 bg-slate-850 p-6 rounded-xl border border-slate-700 flex flex-col justify-between">
                 <div>
-                    <h2 class="text-xl font-bold text-slate-200 border-b border-slate-700 pb-2 mb-4">Step 2: How Your Money is Taxed</h2>
-                    <p class="text-xs text-slate-400 mb-4">A standard myth is that moving up a bracket taxes all income at that rate. Watch below as only the money spilling over into higher tiers gets hit with the higher rate.</p>
+                    <h2 class="text-xl font-bold text-slate-200 border-b border-slate-700 pb-2 mb-4">Step 2: How Your Income Fills the Brackets</h2>
+                    <p class="text-xs text-slate-400 mb-4">Watch how your Taxable Income spreads progressively across the system before any credits are applied.</p>
                     
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm text-slate-300">
@@ -107,7 +120,6 @@
             ]
         };
 
-        // Official 2025 IRS Standard Deductions
         const DEDUCTIONS_2025 = {
             single: 15750,
             mfj: 31500
@@ -117,12 +129,13 @@
             const status = document.getElementById('filingStatus').value;
             const wages = Math.max(0, parseFloat(document.getElementById('wages').value) || 0);
             const withholding = Math.max(0, parseFloat(document.getElementById('withholding').value) || 0);
+            const dependentCount = Math.max(0, parseInt(document.getElementById('dependents').value) || 0);
 
             const deduction = DEDUCTIONS_2025[status];
             const taxableIncome = Math.max(0, wages - deduction);
             
-            // Calculate tax and generate breakdown rows simultaneously
-            let totalTax = 0;
+            // Calculate baseline bracket tax
+            let initialTax = 0;
             let htmlTableRows = "";
             const brackets = BRACKETS_2025[status];
 
@@ -134,10 +147,9 @@
                     let currentUpperLimit = Math.min(taxableIncome, bracket.limit);
                     amountInBracket = currentUpperLimit - bracket.min;
                     bracketTax = amountInBracket * bracket.rate;
-                    totalTax += bracketTax;
+                    initialTax += bracketTax;
                 }
 
-                // Render descriptive string for the table range display
                 let rangeText = `${formatCurrency(bracket.min)}`;
                 if (bracket.limit === Infinity) {
                     rangeText += "+";
@@ -145,7 +157,6 @@
                     rangeText += ` to ${formatCurrency(bracket.limit)}`;
                 }
 
-                // Highlight active brackets visually
                 let rowStyle = amountInBracket > 0 ? "bg-emerald-950/20 font-medium text-slate-200" : "opacity-30 text-slate-500";
 
                 htmlTableRows += `
@@ -158,16 +169,28 @@
                 `;
             });
 
-            // Write bracket matrix to UI
             document.getElementById('bracketTableBody').innerHTML = htmlTableRows;
 
-            // Update Summaries
-            const finalDifference = withholding - totalTax;
+            // Apply Child Tax Credit ($2000 per dependent, capped at total tax liability for simplification)
+            const childTaxCredit = dependentCount * 2000;
+            const finalTaxLiability = Math.max(0, initialTax - childTaxCredit);
+
+            // Calculate Effective Tax Rate: (Final Tax Owed / Gross Income) * 100
+            let effectiveRate = 0;
+            if (wages > 0) {
+                effectiveRate = (finalTaxLiability / wages) * 100;
+            }
+
+            // Update DOM Summaries
+            const finalDifference = withholding - finalTaxLiability;
             document.getElementById('lblGross').innerText = formatCurrency(wages);
             document.getElementById('lblDeduction').innerText = `-${formatCurrency(deduction)}`;
             document.getElementById('lblTaxable').innerText = formatCurrency(taxableIncome);
-            document.getElementById('lblTaxLiability').innerText = formatCurrency(totalTax);
+            document.getElementById('lblInitialTax').innerText = formatCurrency(initialTax);
+            document.getElementById('lblCredit').innerText = `-${formatCurrency(childTaxCredit)}`;
+            document.getElementById('lblTaxLiability').innerText = formatCurrency(finalTaxLiability);
             document.getElementById('lblPaid').innerText = formatCurrency(withholding);
+            document.getElementById('lblEffectiveRate').innerText = `${effectiveRate.toFixed(1)}%`;
 
             const resultBox = document.getElementById('resultBox');
             const resultType = document.getElementById('resultType');
@@ -188,12 +211,13 @@
             return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
         }
 
-        // Live Event Handling
+        // Live Event Listeners
         document.getElementById('filingStatus').addEventListener('change', updateVibe);
         document.getElementById('wages').addEventListener('input', updateVibe);
         document.getElementById('withholding').addEventListener('input', updateVibe);
+        document.getElementById('dependents').addEventListener('input', updateVibe);
 
-        // Initial Exec
+        // Run
         updateVibe();
     </script>
 </body>
