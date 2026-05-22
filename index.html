@@ -31,7 +31,7 @@
                         <label class="block text-sm font-medium text-slate-400 mb-1">Box 1: Wages & Tips (Gross Income)</label>
                         <div class="relative">
                             <span class="absolute left-3 top-2.5 text-slate-500">$</span>
-                            <input id="wages" type="number" value="75000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 pl-8 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <input id="wages" type="number" value="50000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 pl-8 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                     </div>
 
@@ -39,12 +39,12 @@
                         <label class="block text-sm font-medium text-slate-400 mb-1">Box 2: Federal Income Tax Withheld</label>
                         <div class="relative">
                             <span class="absolute left-3 top-2.5 text-slate-500">$</span>
-                            <input id="withholding" type="number" value="7000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 pl-8 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <input id="withholding" type="number" value="4000" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 pl-8 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-1">Number of Qualifying Dependents ($2,000 credit each)</label>
+                        <label class="block text-sm font-medium text-slate-400 mb-1">Number of Qualifying Dependents ($2,200 credit each)</label>
                         <input id="dependents" type="number" min="0" max="10" value="2" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:ring-2 focus:ring-emerald-500 outline-none">
                     </div>
                 </div>
@@ -56,7 +56,7 @@
                     <hr class="border-slate-800">
                     <div class="flex justify-between font-semibold"><span class="text-slate-300">Taxable Income:</span> <span id="lblTaxable" class="font-mono text-emerald-300">$0.00</span></div>
                     <div class="flex justify-between"><span class="text-slate-400">Initial Bracket Tax:</span> <span id="lblInitialTax" class="font-mono">$0.00</span></div>
-                    <div class="flex justify-between text-cyan-400"><span class="text-cyan-400">Dependent Tax Credit:</span> <span id="lblCredit" class="font-mono">-$0.00</span></div>
+                    <div class="flex justify-between text-cyan-400"><span class="text-cyan-400">Child Tax Credit Allowed:</span> <span id="lblCredit" class="font-mono">-$0.00</span></div>
                     <hr class="border-slate-800">
                     <div class="flex justify-between text-base font-bold"><span class="text-slate-200">Total Final Tax Liability:</span> <span id="lblTaxLiability" class="font-mono">$0.00</span></div>
                     <div class="flex justify-between"><span class="text-slate-400">Box 2 Payments Made:</span> <span id="lblPaid" class="font-mono text-blue-400">$0.00</span></div>
@@ -171,9 +171,23 @@
 
             document.getElementById('bracketTableBody').innerHTML = htmlTableRows;
 
-            // Apply Child Tax Credit ($2000 per dependent, capped at total tax liability for simplification)
-            const childTaxCredit = dependentCount * 2000;
-            const finalTaxLiability = Math.max(0, initialTax - childTaxCredit);
+            // --- 2025 IRS CHILD TAX CREDIT CORE MATH ---
+            const totalCreditAvailable = dependentCount * 2200; 
+            
+            let nonRefundableUsed = Math.min(initialTax, totalCreditAvailable);
+            let leftoverCredit = totalCreditAvailable - nonRefundableUsed;
+            
+            // Calculate Cap for Refundable Portion (ACTC): Max $1,700 per child, or 15% of earned income over $2,500
+            let refundableCap = dependentCount * 1700;
+            let earnedIncomeFormula = Math.max(0, (wages - 2500) * 0.15);
+            let finalRefundableCredit = Math.min(leftoverCredit, refundableCap, earnedIncomeFormula);
+            
+            const totalCreditAllowed = nonRefundableUsed + finalRefundableCredit;
+            
+            // Tax liability cannot technically drop below $0 on a 1040 line 24.
+            // Instead, the final refundable amount bypasses liability and acts as an additional payment.
+            const finalTaxLiability = Math.max(0, initialTax - nonRefundableUsed);
+            const netRefundOrOwed = withholding + finalRefundableCredit - finalTaxLiability;
 
             // Calculate Effective Tax Rate: (Final Tax Owed / Gross Income) * 100
             let effectiveRate = 0;
@@ -182,12 +196,11 @@
             }
 
             // Update DOM Summaries
-            const finalDifference = withholding - finalTaxLiability;
             document.getElementById('lblGross').innerText = formatCurrency(wages);
             document.getElementById('lblDeduction').innerText = `-${formatCurrency(deduction)}`;
             document.getElementById('lblTaxable').innerText = formatCurrency(taxableIncome);
             document.getElementById('lblInitialTax').innerText = formatCurrency(initialTax);
-            document.getElementById('lblCredit').innerText = `-${formatCurrency(childTaxCredit)}`;
+            document.getElementById('lblCredit').innerText = `-${formatCurrency(totalCreditAllowed)}`;
             document.getElementById('lblTaxLiability').innerText = formatCurrency(finalTaxLiability);
             document.getElementById('lblPaid').innerText = formatCurrency(withholding);
             document.getElementById('lblEffectiveRate').innerText = `${effectiveRate.toFixed(1)}%`;
@@ -196,13 +209,13 @@
             const resultType = document.getElementById('resultType');
             const resultAmount = document.getElementById('resultAmount');
 
-            if (finalDifference >= 0) {
+            if (netRefundOrOwed >= 0) {
                 resultType.innerText = "🎉 Estimated Refund";
-                resultAmount.innerText = formatCurrency(finalDifference);
+                resultAmount.innerText = formatCurrency(netRefundOrOwed);
                 resultBox.className = "mt-4 p-4 rounded-xl text-center border border-emerald-500/30 bg-emerald-950/30 text-emerald-400";
             } else {
                 resultType.innerText = "💸 Tax Owed to IRS";
-                resultAmount.innerText = formatCurrency(Math.abs(finalDifference));
+                resultAmount.innerText = formatCurrency(Math.abs(netRefundOrOwed));
                 resultBox.className = "mt-4 p-4 rounded-xl text-center border border-rose-500/30 bg-rose-950/30 text-rose-400";
             }
         }
